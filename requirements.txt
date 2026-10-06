@@ -1,4 +1,4 @@
-keras
+pytorch
 matplotlib
 numpy
 wandb

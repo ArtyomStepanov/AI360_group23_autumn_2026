@@ -4,6 +4,7 @@ import torch.nn as nn
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Optional
+from pathlib import Path
 
 
 @dataclass
@@ -30,10 +31,10 @@ class AbstractModel(nn.Module):
 def fit_model(model: AbstractModel, config: TrainConfig):
         pass
 
-def load_model(model: AbstractModel):
+def load_model(model: AbstractModel, load_path: Path):
     pass
 
-def save_model(model: AbstractModel):
+def save_model(model: AbstractModel, save_path: Path):
     pass
 
 class BaseLogger(ABC):
