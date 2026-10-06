@@ -19,7 +19,7 @@ class TrainConfig:
 
 class AbstractModel(nn.Module):
     @abstractmethod
-    def __init__(self, nb_classes=10):
+    def __init__(self, nb_classes):
         super().__init__()
 
     @abstractmethod
