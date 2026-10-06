@@ -1,0 +1,20 @@
+# Иллюстрация; точный протокол статьи ещё не задан.
+seed: 1
+dataset:
+  name: cifar10
+  root: datasets
+  split_file: datasets/splits/cifar10.json
+model:
+  name: convnet
+  channels: [32, 64]
+stages:
+  sb:
+    batch_size: 256
+    epochs: 10
+    optimizer: {name: adam, lr: 0.001}
+  lb:
+    batch_size: 4096
+    epochs: 20
+    optimizer: {name: adam, lr: 0.001}
+    parent: sb.last
+    transfer_optimizer: false
