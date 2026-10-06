@@ -1,4 +1,6 @@
-from abs_models import AbstractModel
+from torch import nn
+
+from models.abs_model import AbstractModel
 
 
 class DNN(AbstractModel):
