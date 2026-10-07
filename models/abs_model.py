@@ -33,6 +33,7 @@ class BaseLogger(ABC):
 class TrainConfig:
     optimizer: torch.optim.Optimizer
     criterion: torch.nn.Module
+    seed: int
     batch_size: int
     epoch_count: int
     scheduler: Optional[SchedulerInstance] = None
