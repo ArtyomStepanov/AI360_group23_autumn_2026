@@ -1,126 +1,39 @@
-<<<<<<< HEAD
 # Модели
 
-`abs_model.py` определяет интерфейсы `AbstractModel`, `BaseLogger` и конфигурацию
-`TrainConfig`. Реализации моделей размещаются в `instances/`, сохранённые веса —
-в `weights/`. Запускайте скрипты и примеры из корня проекта.
+`abs_model.py` объявляет AbstractModel и SchedulerInstance.
+Реализации моделей находятся в `instances/`, файлы состояния — в `weights/`.
+TrainConfig и fit объявлены в [train.py](../train.py).
 
-## Создание модели
+## AbstractModel
 
-Наследуйте `AbstractModel`, реализуйте конструктор и `forward`. В конструкторе
-вызовите `super().__init__()` и зарегистрируйте слои как атрибуты модели.
+AbstractModel наследует nn.Module и ABC. Абстрактные методы:
 
-```python
-from torch import nn
-from models.abs_model import AbstractModel
+| Метод | Контракт |
+| --- | --- |
+| __init__ | Инициализация nn.Module и слоёв конкретной модели |
+| forward(x) | Принимает батч тензоров, возвращает выход модели |
 
+Форма выхода определяется задачей и должна быть совместима с criterion и
+метриками. Для CrossEntropyLoss ожидаются logits `(N, C)`, для бинарного
+BCEWithLogitsLoss — logits `(N,)` или `(N, 1)` той же формы, что метки.
 
-class LinearClassifier(AbstractModel):
-    def __init__(self, in_features: int, nb_classes: int):
-        super().__init__()
-        self.classifier = nn.Linear(in_features, nb_classes)
+Реализации: [CNN](instances/CNN.py), [DNN](instances/DNN.py),
+[ShallowNN](instances/ShallowNN.py). Параметры, формы входов и выходов и
+особенности каждой модели описаны в docstring её класса.
 
-    def forward(self, x):
-        return self.classifier(x)
-```
+## SchedulerInstance
 
-`forward` принимает батч тензоров и возвращает тензор, совместимый с выбранными
-criterion и метриками. Для многоклассовой классификации это logits `(N, C)`.
-Перед `CrossEntropyLoss` не применяйте softmax. Для бинарной классификации с
-`BCEWithLogitsLoss` возвращайте один logit на пример; форма выхода и меток должна
-совпадать: `(N,)` либо `(N, 1)`.
-
-Текущие `CNN`, `DNN` и `ShallowNN` рассчитаны на RGB-изображения `(N, 3, 32, 32)`.
-Число выходных классов задаётся аргументом `nb_classes`.
-
-## Обучение
-
-```python
-import torch
-from torch import nn
-from torch.utils.data import TensorDataset
-from models.abs_model import TrainConfig
-from models.instances.CNN import CNN
-from train import fit
-
-dataset = TensorDataset(torch.randn(8, 3, 32, 32), torch.randint(0, 10, (8,)))
-model = CNN(nb_classes=10)
-config = TrainConfig(
-    optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
-    criterion=nn.CrossEntropyLoss(),
-    batch_size=4,
-    epoch_count=2,
-)
-fit(model, config, dataset, device="cpu")
-```
-
-`fit` изменяет переданную модель и возвращает её. Параметры `TrainConfig`
-передаются по имени. Обязательны optimizer, criterion, batch_size и epoch_count.
-Scheduler вызывается через `step()` после каждой эпохи. Logger вызывается после
-каждого шага optimizer и получает модель и скалярный loss этого батча; наследник
-`BaseLogger` также должен реализовать `get_history()`.
-
-Для каждого нового запуска создавайте свежие optimizer, scheduler и logger:
-`fit` самостоятельно не очищает их состояние. Optimizer должен ссылаться на
-параметры обучаемой модели.
-
-- `warm_start=False`: у подмодулей вызывается `reset_parameters()`, если он есть.
-  Стандартные слои переинициализируют параметры; BatchNorm сбрасывает статистики.
-  Для собственных обучаемых слоёв реализуйте этот метод.
-- `warm_start=True`: параметры и буферы переданной модели сохраняются перед
-  обучением. Это режим продолжения обучения после загрузки весов.
-
-В текущем `fit` batch_size должен быть не меньше 2, epoch_count — не меньше 1,
-а размер датасета — не меньше batch_size. Данные перемешиваются, последний
-неполный батч отбрасывается из-за BatchNorm в моделях проекта.
+SchedulerInstance — псевдоним типа torch.optim.lr_scheduler._LRScheduler.
 
 ## Сохранение и загрузка
 
-```python
-from models.instances.CNN import CNN
-from models.utility import load_model, save_model
+`save_model(model, save_path) -> None` сохраняет state_dict и создаёт родительские
+каталоги пути. `load_model(model, load_path) -> AbstractModel` загружает state_dict
+в переданный экземпляр и возвращает его. Оба пути принимают Path или str.
 
-model = CNN(nb_classes=10)
-save_model(model, "models/weights/cnn.pt")
-restored = load_model(CNN(nb_classes=10), "models/weights/cnn.pt")
-```
+State_dict содержит параметры и буферы, включая статистики BatchNorm.
+Архитектура и состояние optimizer, scheduler и logger не сохраняются.
+Загрузка использует weights_only=True, map_location="cpu" и strict=True;
+имена и размеры параметров должны совпадать. Режим train/eval загрузка не меняет.
 
-Сохраняется `state_dict`: параметры и буферы, включая статистики BatchNorm.
-Архитектура, optimizer, scheduler и история logger не сохраняются. Для загрузки
-создайте совместимую модель с теми же размерами слоёв. Загрузка строгая и
-возвращает переданный экземпляр; содержимое файла сначала загружается на CPU.
-Для предсказаний вызовите `model.eval()` и отключите вычисление градиентов.
-
-Правила оценки описаны в [README метрик](../metrics/README.md), формат входных
-данных — в [README датасетов](../datasets/README.md).
-=======
-# Использование models и utility
-
-config_generator:
-    supported optimizers:
-        -AdamW (default lr=1e-3, weight_decay=0.01)
-        -Adam (default lr=1e-3)
-        -SGD (default lr=1e-1, weight_decay=5e-4)
-    supported criterions:
-        -CrossEntropyLoss (as CE)
-        -BCEWithLogitsLoss (as BCE)
-        -MSELoss (as MSE)
-    supported schedulers:
-        -StepLR (step_size=30, gamma=0.1)
-        -MultiStepLR (as MStepLR) (milestones=[30, 60, 90], gamma=0.1)
-        -ExponentialLR (as expLR) (gamma=0.95)
-        -CosineAnnealingLR (as CALR) (T_max=100, eta_min=1e-6)
-        -LinearLR (start_factor=0.01, end_factor=1.0, total_iters=10) - Warmup
-    parameters:
-        model: AbstractModel
-        prompt: str
-        batch_size: int
-        epoch_count: int
-        seed: int = 42
-        lr: float = 0.0
-        warm_start: bool = False
-        optimizer: Optional[torch.optim.Optimizer] = None
-        criterion: Optional[torch.nn.Module] = None
-        scheduler: Optional[SchedulerInstance] = None
-        logger: Optional[BaseLogger] = None
->>>>>>> 277fabea159568205db6fd62c485706ca20ce50c
+Общий пример использования приведён в [корневом README](../README.md).

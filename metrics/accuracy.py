@@ -4,7 +4,16 @@ from .base import BaseMetric
 
 
 class Accuracy(BaseMetric):
-    """Multiclass accuracy for outputs (N, C) and class indices (N,)."""
+    """Доля правильных ответов при многоклассовой классификации.
+
+    update принимает outputs формы (N, C) и targets формы (N,) с индексами
+    классов. Размеры батчей должны совпадать. Предсказания определяются через
+    argmax(dim=1); неверные формы вызывают ValueError.
+
+    compute возвращает число правильных ответов, делённое на общее число
+    примеров, от 0 до 1. При отсутствии примеров вызывает ValueError.
+    reset очищает оба счётчика. При создании счётчики равны нулю.
+    """
 
     def __init__(self):
         self.reset()
@@ -28,9 +37,18 @@ class Accuracy(BaseMetric):
 
 
 class BinaryAccuracy(Accuracy):
-    """Binary accuracy for logits and 0/1 targets shaped (N,) or (N, 1).
+    """Доля правильных ответов при бинарной классификации с одним logit.
 
-    threshold is expressed in logits: 0 corresponds to probability 0.5.
+    Args:
+        threshold: Порог в logits; 0 соответствует вероятности 0.5.
+
+    update принимает logits и метки 0/1 формы (N,) или (N, 1) с одинаковым N.
+    Тензоры разворачиваются в одномерные; предсказание равно logit >= threshold.
+    Неверные формы вызывают ValueError. Значения меток на принадлежность
+    множеству {0, 1} не проверяются.
+
+    compute возвращает долю правильных ответов от 0 до 1 и вызывает ValueError
+    при отсутствии примеров. reset очищает счётчики, изначально равные нулю.
     """
 
     def __init__(self, threshold: float = 0.0):
