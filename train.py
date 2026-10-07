@@ -1,8 +1,26 @@
+import random
+from dataclasses import dataclass
+from typing import Optional
+
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-from models.abs_model import TrainConfig
+from loggers import BaseLogger
+from models.abs_model import SchedulerInstance
+
+
+@dataclass(kw_only=True)
+class TrainConfig:
+    optimizer: torch.optim.Optimizer
+    criterion: nn.Module
+    batch_size: int
+    epoch_count: int
+    seed: Optional[int] = 42
+    scheduler: Optional[SchedulerInstance] = None
+    logger: Optional[BaseLogger] = None
+    warm_start: bool = False
 
 
 def fit(
@@ -19,6 +37,11 @@ def fit(
         raise ValueError(
             "При drop_last=True размер датасета должен быть >= batch_size"
         )
+
+    if config.seed is not None:
+        random.seed(config.seed)
+        np.random.seed(config.seed)
+        torch.manual_seed(config.seed)
 
     device = torch.device(device)
     model.to(device)

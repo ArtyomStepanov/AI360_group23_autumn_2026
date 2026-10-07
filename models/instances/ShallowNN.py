@@ -4,6 +4,16 @@ from models.abs_model import AbstractModel
 
 
 class ShallowNN(AbstractModel):
+    """Классификатор RGB-изображений 32×32 с двумя свёрточными слоями.
+
+    Args:
+        nb_classes: Число выходных классов.
+
+    Вход: батч с плавающей точкой формы (N, 3, 32, 32).
+    Выход: logits формы (N, nb_classes), без softmax.
+    Содержит BatchNorm и Dropout; в train-режиме N должен быть не меньше 2.
+    """
+
     def __init__(self, nb_classes):
         super().__init__()
         

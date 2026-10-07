@@ -1,7 +1,11 @@
-from abs_model import AbstractModel, TrainConfig, BaseLogger, SchedulerInstance
 from pathlib import Path
 from typing import Optional
+
 import torch
+
+from train import TrainConfig
+from loggers import BaseLogger
+from .abs_model import AbstractModel, SchedulerInstance
 
 def load_model(model: AbstractModel, load_path: Path | str) -> AbstractModel:
     """Load parameters and buffers into an existing compatible model."""
@@ -17,8 +21,21 @@ def save_model(model: AbstractModel, save_path: Path | str) -> None:
     torch.save(model.state_dict(), save_path)
 
 
-def config_generator(model: AbstractModel, prompt: str, *, batch_size: int, epoch_count: int, seed: int = 42, lr: float = 0.0, logger: Optional[BaseLogger] = None, warm_start: bool = False,
-optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.Module] = None, scheduler: Optional[SchedulerInstance]=None) -> TrainConfig:    
+def config_generator(
+    model: AbstractModel,
+    prompt: str,
+    *,
+    batch_size: int,
+    epoch_count: int,
+    seed: Optional[int] = 42,
+    lr: float = 0.0,
+    logger: Optional[BaseLogger] = None,
+    warm_start: bool = False,
+    optimizer: Optional[torch.optim.Optimizer] = None,
+    criterion: Optional[torch.nn.Module] = None,
+    scheduler: Optional[SchedulerInstance] = None,
+) -> TrainConfig:
+    """Build a training configuration from optimizer/loss/scheduler tokens."""
     prompt = prompt.lower().strip().split()
 
     for entry in prompt:
@@ -38,7 +55,7 @@ optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.
         elif entry == "sgd":
             lr = lr if lr > 0 else 1e-1
             optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=5e-4, momentum=0.9, nesterov=True)
-    
+
     if optimizer is None:
         raise ValueError(
             "optimizer либо не содержится в промте, либо не могу распарсить"
@@ -60,18 +77,13 @@ optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.
         elif entry == "linearlr":
             scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.01, end_factor=1.0, total_iters=10)
 
-    config = TrainConfig(batch_size=batch_size, 
-            epoch_count=epoch_count,
-            seed=seed,
-            logger=logger, 
-            warm_start=warm_start,
-            optimizer=optimizer,
-            criterion=criterion,
-            scheduler=scheduler)
-
-    if config.scheduler is None:
-        raise ValueError(
-            "scheduler либо не содержится в промте, либо не могу распарсить"
-        )
-    
-    return config
+    return TrainConfig(
+        batch_size=batch_size,
+        epoch_count=epoch_count,
+        seed=seed,
+        logger=logger,
+        warm_start=warm_start,
+        optimizer=optimizer,
+        criterion=criterion,
+        scheduler=scheduler,
+    )

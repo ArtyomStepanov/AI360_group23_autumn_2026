@@ -4,6 +4,16 @@ from models.abs_model import AbstractModel
 
 
 class CNN(AbstractModel):
+    """Свёрточный классификатор RGB-изображений 32×32.
+
+    Args:
+        nb_classes: Число выходных классов.
+
+    Вход: батч с плавающей точкой формы (N, 3, 32, 32).
+    Выход: logits формы (N, nb_classes), без softmax.
+    Содержит BatchNorm; в train-режиме N должен быть не меньше 2.
+    """
+
     def __init__(self, nb_classes):
         super().__init__()
 
