@@ -3,12 +3,18 @@ from pathlib import Path
 from typing import Optional
 import torch
 
-def load_model(model: AbstractModel, load_path: Path):
-    pass
+def load_model(model: AbstractModel, load_path: Path | str) -> AbstractModel:
+    """Load parameters and buffers into an existing compatible model."""
+    state_dict = torch.load(load_path, map_location="cpu", weights_only=True)
+    model.load_state_dict(state_dict, strict=True)
+    return model
 
 
-def save_model(model: AbstractModel, save_path: Path):
-    pass
+def save_model(model: AbstractModel, save_path: Path | str) -> None:
+    """Save parameters and buffers without training or optimizer state."""
+    save_path = Path(save_path)
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), save_path)
 
 
 def config_generator(model: AbstractModel, prompt: str, *, batch_size: int, epoch_count: int, seed: int = 42, lr: float = 0.0, logger: Optional[BaseLogger] = None, warm_start: bool = False,
