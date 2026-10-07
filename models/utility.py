@@ -11,7 +11,7 @@ def save_model(model: AbstractModel, save_path: Path):
     pass
 
 
-def config_generator(model: AbstractModel, prompt: str, *, batch_size: int, epoch_count: int,  lr: float = 0.0, logger: Optional[BaseLogger] = None, warm_start: bool = False,
+def config_generator(model: AbstractModel, prompt: str, *, batch_size: int, epoch_count: int, seed: int = 42, lr: float = 0.0, logger: Optional[BaseLogger] = None, warm_start: bool = False,
 optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.Module] = None, scheduler: Optional[SchedulerInstance]=None) -> TrainConfig:    
     prompt = prompt.lower().strip().split()
 
@@ -55,7 +55,8 @@ optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.
             scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.01, end_factor=1.0, total_iters=10)
 
     config = TrainConfig(batch_size=batch_size, 
-            epoch_count=epoch_count, 
+            epoch_count=epoch_count,
+            seed=seed,
             logger=logger, 
             warm_start=warm_start,
             optimizer=optimizer,
