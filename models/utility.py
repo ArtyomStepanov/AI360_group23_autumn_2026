@@ -22,11 +22,11 @@ optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.
     prompt = prompt.lower().strip().split()
 
     for entry in prompt:
-        if entry == "ce":
+        if entry == "ce" or entry == "crossentropyloss":
             criterion = torch.nn.CrossEntropyLoss()
-        elif entry == "bce":
+        elif entry == "bce" or entry == "bcewithlogitsloss":
             criterion = torch.nn.BCEWithLogitsLoss()
-        elif entry == "mse":
+        elif entry == "mse" or entry == "mseloss":
             criterion = torch.nn.MSELoss()
 
         if entry == "adamw":
@@ -51,11 +51,11 @@ optimizer: Optional[torch.optim.Optimizer] = None, criterion: Optional[torch.nn.
     for entry in prompt:
         if entry == "steplr":
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-        elif entry == "msteplr":
+        elif entry == "msteplr" or entry == "multisteplr":
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60, 90], gamma=0.1)
-        elif entry == "explr":
+        elif entry == "explr" or entry == "exponentiallr":
             scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-        elif entry == "calr":
+        elif entry == "calr" or entry == "cosineannealinglr":
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-6)
         elif entry == "linearlr":
             scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.01, end_factor=1.0, total_iters=10)
