@@ -28,6 +28,8 @@ def fit(
     config: TrainConfig,
     dataset: Dataset,
     device: str,
+    workers: int = 0,      # Контроль потоков CPU для загрузки данных
+    optimize: bool = True  # Контроль аппаратного ускорения (AMP)
 ) -> nn.Module:
     if config.epoch_count < 1:
         raise ValueError("epoch_count должен быть положительным")
@@ -43,9 +45,9 @@ def fit(
         np.random.seed(config.seed)
         torch.manual_seed(config.seed)
 
-    device = torch.device(device)
-    model.to(device)
-    config.criterion.to(device)
+    device_obj = torch.device(device)
+    model.to(device_obj)
+    config.criterion.to(device_obj)
 
     if not config.warm_start:
         def reset_parameters(module: nn.Module):
@@ -55,27 +57,44 @@ def fit(
 
         model.apply(reset_parameters)
 
+    use_cuda = device_obj.type == "cuda"
+    
     loader = DataLoader(
         dataset,
         batch_size=config.batch_size,
         shuffle=True,
         drop_last=True,
+        num_workers=workers,
+        pin_memory=use_cuda,
+        persistent_workers=(workers > 0)
     )
+
+    use_amp = optimize and use_cuda
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
 
     for _ in range(config.epoch_count):
         model.train()
 
         for x, y in loader:
-            x = x.to(device)
-            y = y.to(device)
+            x = x.to(device_obj, non_blocking=use_cuda)
+            y = y.to(device_obj, non_blocking=use_cuda)
 
             config.optimizer.zero_grad(set_to_none=True)
 
-            prediction = model(x)
-            loss = config.criterion(prediction, y)
+            if optimize:
+                with torch.autocast(device_type=device_obj.type, dtype=torch.float16, enabled=use_amp):
+                    prediction = model(x)
+                    loss = config.criterion(prediction, y)
 
-            loss.backward()
-            config.optimizer.step()
+                scaler.scale(loss).backward()
+                scaler.step(config.optimizer)
+                scaler.update()
+            else:
+                prediction = model(x)
+                loss = config.criterion(prediction, y)
+                
+                loss.backward()
+                config.optimizer.step()
 
             loss_value = loss.detach().item()
 
