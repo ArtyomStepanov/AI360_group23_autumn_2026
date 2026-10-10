@@ -15,13 +15,16 @@ def compute_sharpness(
     subspace_dim: int | None = 100,
     seed: int = 42,
     workers: int = 0,
-    optimize: bool = False
+    optimize: bool = False,
+    n_starts: int = 1,
 ) -> float:
     """
     Приближённая sharpness по Metric 2.1 Keskar et al.
     Границы координат: epsilon * (abs(A^+ theta) + 1).
-    Используется один запуск LBFGS с репараметризацией через tanh;
+    Используется LBFGS с репараметризацией через tanh;
     subspace_dim=None задаёт полное пространство (A=I).
+    n_starts задаёт число случайных стартов в одном подпространстве;
+    возвращается максимальная оценка среди всех стартов.
     criterion должен возвращать средний loss по примерам батча.
     Поддерживает распределение по потокам (workers) и смешанную точность (optimize).
     """
@@ -31,6 +34,8 @@ def compute_sharpness(
         raise ValueError("batch_size, epsilon и maxiter должны быть положительными")
     if subspace_dim is not None and subspace_dim < 1:
         raise ValueError("subspace_dim должен быть положительным или None")
+    if not isinstance(n_starts, int) or n_starts < 1:
+        raise ValueError("n_starts должен быть положительным целым числом")
 
     device_obj = torch.device(device)
     model.to(device_obj)
@@ -127,7 +132,13 @@ def compute_sharpness(
     was_training = model.training
     model.eval()
     try:
-        lbfgs.step(closure)
+        for start in range(n_starts):
+            if start > 0:
+                z = (0.1 * torch.randn(
+                    p_dim, device=device_obj, dtype=theta0.dtype, generator=generator,
+                )).requires_grad_(True)
+                lbfgs = torch.optim.LBFGS([z], max_iter=maxiter, line_search_fn="strong_wolfe")
+            lbfgs.step(closure)
 
         with torch.no_grad():
             total_loss = 0.0

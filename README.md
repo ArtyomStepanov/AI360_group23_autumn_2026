@@ -12,6 +12,7 @@
 | `eval.py` | evaluate |
 | `experiments/` | Материалы экспериментов |
 | [scripts](scripts/README.md) | Первый эксперимент: размер батча, качество и sharpness |
+| [exp2](scripts/exp2_README.md) | Learning rate × размер батча: 400 моделей C1 |
 
 ## Пример обучения и оценки
 
