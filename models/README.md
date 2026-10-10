@@ -1,7 +1,8 @@
 # Модели
 
 `abs_model.py` объявляет AbstractModel и SchedulerInstance.
-Реализации моделей находятся в `instances/`, файлы состояния — в `weights/`.
+Реализации моделей находятся в [instances](instances/README.md), файлы состояния —
+в [weights](weights/README.md). Утилиты объявлены в [utils.py](utils.py).
 TrainConfig и fit объявлены в [train.py](../train.py).
 
 ## AbstractModel
@@ -40,41 +41,18 @@ State_dict содержит параметры и буферы, включая �
 
 ## Генератор конфигураций
 
-### Поддерживаемые оптимизаторы
+`config_generator` из [utils.py](utils.py) возвращает TrainConfig для переданной
+модели. Обязательные аргументы: model, prompt, batch_size и epoch_count.
+Prompt содержит разделённые пробелами названия или алиасы; регистр не учитывается.
 
-- **AdamW** — по умолчанию `lr=1e-3`, `weight_decay=0.01`
-- **Adam** — по умолчанию `lr=1e-3`
-- **SGD** — по умолчанию `lr=1e-1`, `weight_decay=5e-4`
+| Объекты | Поддерживаемые токены |
+| --- | --- |
+| Optimizer | adamw, adam, sgd |
+| Criterion | ce / crossentropyloss, bce / bcewithlogitsloss, mse / mseloss |
+| Scheduler | steplr, msteplr / multisteplr, explr / exponentiallr, calr / cosineannealinglr, linearlr |
 
-### Поддерживаемые функции потерь
-
-- **CrossEntropyLoss** (алиас: `CE`)
-- **BCEWithLogitsLoss** (алиас: `BCE`)
-- **MSELoss** (алиас: `MSE`)
-
-### Поддерживаемые планировщики learning rate
-
-- **StepLR** — `step_size=30`, `gamma=0.1`
-- **MultiStepLR** (алиас: `MStepLR`) — `milestones=[30, 60, 90]`, `gamma=0.1`
-- **ExponentialLR** (алиас: `expLR`) — `gamma=0.95`
-- **CosineAnnealingLR** (алиас: `CALR`) — `T_max=100`, `eta_min=1e-6`
-- **LinearLR** — `start_factor=0.01`, `end_factor=1.0`, `total_iters=10` (используется для warmup)
-
-### Параметры
-
-| Параметр | Тип | Описание |
-|---|---|---|
-| `model` | `AbstractModel` | Модель для обучения |
-| `prompt` | `str` | Названия и алиасы, разделённые пробелами; регистр не учитывается |
-| `batch_size` | `int` | Размер батча |
-| `epoch_count` | `int` | Количество эпох |
-| `seed` | `Optional[int]` | Seed (по умолчанию `42`); `None` отключает установку |
-| `lr` | `float` | Learning rate (по умолчанию `0.0`) |
-| `warm_start` | `bool` | Флаг тёплого старта (по умолчанию `False`) |
-| `optimizer` | `Optional[torch.optim.Optimizer]` | Оптимизатор (по умолчанию `None`) |
-| `criterion` | `Optional[torch.nn.Module]` | Функция потерь (по умолчанию `None`) |
-| `scheduler` | `Optional[SchedulerInstance]` | Планировщик learning rate (по умолчанию `None`) |
-| `logger` | `Optional[BaseLogger]` | Логгер (по умолчанию `None`) |
-
-Scheduler необязателен. Optimizer и criterion должны быть заданы в prompt
-или переданы аргументами.
+Optimizer и criterion должны быть заданы токенами или переданными объектами.
+Scheduler необязателен. Соответствующий токен заменяет переданный объект;
+неизвестные токены игнорируются. Положительный lr переопределяет стандартный
+lr создаваемого optimizer. Seed по умолчанию 42, warm_start=False, logger=None.
+Настройки создаваемых объектов приведены непосредственно в реализации.

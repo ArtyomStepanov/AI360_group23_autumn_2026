@@ -11,6 +11,7 @@
 | `train.py` | TrainConfig и fit |
 | `eval.py` | evaluate |
 | `experiments/` | Материалы экспериментов |
+| [scripts](scripts/README.md) | Первый эксперимент: размер батча, качество и sharpness |
 
 ## Пример обучения и оценки
 
@@ -25,8 +26,9 @@ from torch.utils.data import TensorDataset
 
 from eval import evaluate
 from metrics import Accuracy
+from loggers import LossLogger
 from models.instances.CNN import CNN
-from models.utility import load_model, save_model
+from models.utils import load_model, save_model
 from train import TrainConfig, fit
 
 # Seed для создания данных; seed в TrainConfig действует внутри fit.
@@ -46,13 +48,15 @@ config = TrainConfig(
     batch_size=4,
     epoch_count=2,
     seed=42,
+    logger=LossLogger(),
 )
-fit(model, config, train_dataset, device)
+fit(model, config, train_dataset, device, workers=0, optimize=True)
 results = evaluate(
     model, test_dataset, criterion, device,
     batch_size=4, metrics={"accuracy": Accuracy()},
 )
 print(results)
+print(config.logger.get_history())
 
 save_model(model, "models/weights/cnn.pt")
 restored = load_model(CNN(nb_classes=10), "models/weights/cnn.pt")
@@ -73,9 +77,13 @@ TrainConfig — dataclass с именованными аргументами.
 | logger | None; при наличии вызывается после каждого шага optimizer |
 | warm_start | False; управляет сбросом параметров модели |
 
-`fit(model, config, dataset, device)` обучает и возвращает переданный экземпляр
+`fit(model, config, dataset, device, workers=0, optimize=True)` обучает и возвращает переданный экземпляр
 модели. Размер dataset должен быть не меньше batch_size. Примеры перемешиваются,
 последний неполный батч отбрасывается. После обучения модель остаётся в train-режиме.
+Workers задаёт число процессов загрузки данных; при workers > 0 они сохраняются
+между эпохами. На CUDA используется закреплённая память и неблокирующий перенос.
+Optimize=True включает AMP float16 и GradScaler только на CUDA; на CPU AMP
+отключён. Optimize=False использует обычный forward/backward.
 
 При warm_start=False fit вызывает reset_parameters у подмодулей, имеющих этот
 метод. У стандартных слоёв переинициализируются параметры, у BatchNorm также
@@ -105,3 +113,24 @@ reduction="sum", веса классов и ignore_index без дополнит
 Оценка выполняется в eval-режиме без вычисления градиентов. Исходный режим
 модели восстанавливается, включая исключение внутри цикла. Модель и criterion
 переносятся на device; исходное устройство не восстанавливается.
+
+## Sharpness
+
+В [metrics/sharpness.py](metrics/sharpness.py) доступна функция
+compute_sharpness. Она получает модель и датасет и требует вычисления
+градиентов, поэтому вызывается отдельно от evaluate.
+
+```python
+from metrics.sharpness import compute_sharpness
+
+sharpness = compute_sharpness(
+    restored, test_dataset, device,
+    criterion=criterion, batch_size=4, subspace_dim=1,
+)
+print(sharpness)
+```
+
+Результат — приближённая оценка, а не гарантированный максимум. Функция использует
+границы из Metric 2.1 статьи Keskar et al. и LBFGS с tanh-репараметризацией.
+Maxiter ограничивает итерации оптимизатора, но не число проходов по датасету.
+Контракт функции описан в [README метрик](metrics/README.md).
