@@ -11,6 +11,7 @@
 | `train.py` | TrainConfig и fit |
 | `eval.py` | evaluate |
 | `experiments/` | Материалы экспериментов |
+| [scripts](scripts/README.md) | Первый эксперимент: размер батча, качество и sharpness |
 
 ## Пример обучения и оценки
 
@@ -115,25 +116,21 @@ reduction="sum", веса классов и ignore_index без дополнит
 
 ## Sharpness
 
-В [metrics/sharpness.py](metrics/sharpness.py) доступны две самостоятельные
-функции: compute_sharpness (исходная версия) и compute_sharpness_v2
-(исправленная версия). Они получают модель и датасет и требуют вычисления
-градиентов, поэтому вызываются отдельно от evaluate.
+В [metrics/sharpness.py](metrics/sharpness.py) доступна функция
+compute_sharpness. Она получает модель и датасет и требует вычисления
+градиентов, поэтому вызывается отдельно от evaluate.
 
 ```python
-from metrics.sharpness import compute_sharpness_v2
+from metrics.sharpness import compute_sharpness
 
-sharpness = compute_sharpness_v2(
+sharpness = compute_sharpness(
     restored, test_dataset, device,
     criterion=criterion, batch_size=4, subspace_dim=1,
 )
 print(sharpness)
 ```
 
-Результат — приближённая оценка, а не гарантированный максимум. V2 использует
-границы из Metric 2.1 статьи Keskar et al., но сохраняет LBFGS с tanh вместо
-L-BFGS-B. При стандартном epsilon=5e-4 текущие пороги остановки могут приводить
-к существенному занижению. Уменьшенные пороги не включены в реализацию.
-Сравнение времени старой и новой версий на обученной модели пока не проведено;
-одинаковый maxiter не гарантирует одинаковое число проходов по датасету.
-Контракты обеих функций описаны в [README метрик](metrics/README.md).
+Результат — приближённая оценка, а не гарантированный максимум. Функция использует
+границы из Metric 2.1 статьи Keskar et al. и LBFGS с tanh-репараметризацией.
+Maxiter ограничивает итерации оптимизатора, но не число проходов по датасету.
+Контракт функции описан в [README метрик](metrics/README.md).
