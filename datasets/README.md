@@ -39,7 +39,7 @@ fit/evaluate и sharpness не выполняют преобразования �
 | --- | --- | --- |
 | fit | batch_size >= 2, len(dataset) >= batch_size | Отбрасывается |
 | evaluate | batch_size >= 1, len(dataset) > 0 | Сохраняется |
-| compute_sharpness_v2 | batch_size >= 1, len(dataset) > 0 | Сохраняется |
+| compute_sharpness | batch_size >= 1, len(dataset) > 0 | Сохраняется |
 
 Общий пример с TensorDataset приведён в [корневом README](../README.md).
 
