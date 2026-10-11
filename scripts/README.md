@@ -2,6 +2,8 @@
 
 Второй эксперимент с сеткой learning rate × batch size описан в
 [exp2_README.md](exp2_README.md).
+Локальный запуск C4 описан в [exp2_local_README.md](exp2_local_README.md).
+Сравнение траекторий small/large batch — в [exp3_README.md](exp3_README.md).
 
 [exp1.py](exp1.py) сравнивает качество классификации и остроту решения при
 разных размерах обучающего батча. Для каждой комбинации модели, числа эпох,

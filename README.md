@@ -13,6 +13,8 @@
 | `experiments/` | Материалы экспериментов |
 | [scripts](scripts/README.md) | Первый эксперимент: размер батча, качество и sharpness |
 | [exp2](scripts/exp2_README.md) | Learning rate × размер батча: 400 моделей C1 |
+| [exp2_local](scripts/exp2_local_README.md) | Локальная сетка из 400 моделей; C4 по умолчанию |
+| [exp3](scripts/exp3_README.md) | Траектории обучения с батчами 265 и 1024 |
 
 ## Пример обучения и оценки
 
