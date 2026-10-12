@@ -22,10 +22,10 @@ from metrics import Accuracy
 from scripts.exp1 import SETUPS as CLASSIFIER_SETUPS
 from train import TrainConfig, fit
 
-EPOCHS = 50
+EPOCHS = 100
 NUM_RUNS = 3
 LR = 1e-3
-BATCHES = {"SB": 265, "LB": 1024}
+BATCHES = {"SB": 256, "LB": 4096}
 LOG_EVERY = {"SB": 10, "LB": 1}
 
 
